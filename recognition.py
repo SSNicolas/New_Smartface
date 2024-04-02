@@ -1,15 +1,51 @@
 import cv2 as cv
 import face_recognition
+import pickle
+
+import numpy as np
 
 cap = cv.VideoCapture(0)
 cap.set(3,1280)
 cap.set(4, 720)
 
 
+# Load encoding file
+print("Loading Encoded File")
+file = open('EncodeFile.p','rb')
+encodeListKnownWithIds = pickle.load(file)
+file.close()
+encodeListKnown, studentIds = encodeListKnownWithIds
+# print(studentIds)
+print("Encoded File Loaded")
+
 
 while True:
-    sucess, img = cap.read()
-    cv.imshow("Webcam", img)
+    success, img = cap.read()
+
+    imgS = cv.resize(img,(0,0), None, 0.25, 0.25)
+    imgS = cv.cvtColor(img, cv.COLOR_BGR2RGB)
+
+    faceCurFrame = face_recognition.face_locations(imgS)
+    encodeCurFrame = face_recognition.face_encodings(imgS, faceCurFrame)
+
+    for encFace, faceLoc in zip(encodeCurFrame,faceCurFrame):
+        matches = face_recognition.compare_faces(encodeListKnown, encFace)
+        faceDis = face_recognition.face_distance(encodeListKnown, encFace)
+        print("matches", matches)
+        print("facesDis", faceDis)
+
+        matchIndex = np.argmin(faceDis)
+        print("matchIndex", matchIndex)
+
+
+
+
+
+
+
+
+
+    # cv.imshow("Webcam", img)
     cv.waitKey(1)
 
 
