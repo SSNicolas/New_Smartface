@@ -1,6 +1,7 @@
 import cv2 as cv
 import face_recognition
 import pickle
+import cvzone
 
 import numpy as np
 
@@ -31,21 +32,25 @@ while True:
     for encFace, faceLoc in zip(encodeCurFrame,faceCurFrame):
         matches = face_recognition.compare_faces(encodeListKnown, encFace)
         faceDis = face_recognition.face_distance(encodeListKnown, encFace)
-        print("matches", matches)
-        print("facesDis", faceDis)
+        # print("matches", matches)
+        # print("facesDis", faceDis)
 
         matchIndex = np.argmin(faceDis)
-        print("matchIndex", matchIndex)
+        # print("matchIndex", matchIndex)
+
+        if matches[matchIndex]:
+            # # Desenho do quadrado na tela
+            # y1, x2, y2, x1 = faceLoc
+            # y1, x2, y2, x1 = y1*4, x2*4, y2*4, x1*4
+            # bbox = 55 + x1, 162 + y1, x2 - x1, y2 - y1
+            # img = cvzone.cornerRect(img, bbox, rt=0)+                                           l
+            print("Known Face Detected")
+            print(studentIds[matchIndex])
+        else:
+            print("Unknown Face Detected")
 
 
-
-
-
-
-
-
-
-    # cv.imshow("Webcam", img)
+    cv.imshow("Webcam", img)
     cv.waitKey(1)
 
 
