@@ -2,8 +2,13 @@ import cv2 as cv
 import face_recognition
 import pickle
 import cvzone
-
 import numpy as np
+import xmlrpc.client
+import base64
+from PIL import Image
+from dotenv import load_dotenv
+import os
+import io
 
 cap = cv.VideoCapture(0)
 cap.set(3,1280)
