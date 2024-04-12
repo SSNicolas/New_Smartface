@@ -8,6 +8,7 @@ import io
 import face_recognition
 import cv2 as cv
 import pickle
+import datetime
 
 
 load_dotenv()
@@ -23,12 +24,24 @@ common = xmlrpc.client.ServerProxy('{}/xmlrpc/2/common'.format(url_odoo))
 uid = common.authenticate(db, username, password, {})
 models = xmlrpc.client.ServerProxy('{}/xmlrpc/2/object'.format(url_odoo))
 
+def cooldown_code(nmbr):
 
-def encoder():
+    try:
+        datetime.datetime.strptime(nmbr, '%d-%m-%Y %H:%M:%S')
+        # print(True)
+        return True
+    except ValueError:
+        # print(False)
+        return False
+
+
+while True:
     ids = models.execute_kw(db, uid, password, 'res.partner', 'search_read', [[]], {'fields': ['name', 'image_1920', 'ref', 'category_id', 'id', 'comment']})
+
     for id in ids:
         if id['image_1920'] and id['id'] != 1:
-            if id['ref'] != 'a':
+
+            if not cooldown_code(id['ref']):
                 # b64 para data
                 image_data = base64.b64decode(id['image_1920'])
                 # data para binario
@@ -43,12 +56,9 @@ def encoder():
                 face_encod_base64 = base64.b64encode(face_encod_pickle).decode('utf-8')
                 print(face_encod_base64)
                 # salva no dados para o Odoo
-                models.execute_kw(db, uid, password, 'res.partner', 'write', [[id['id']], {'comment': face_encod_base64, 'ref': 'a'}])
+                models.execute_kw(db, uid, password, 'res.partner', 'write', [[id['id']], {'comment': face_encod_base64, 'ref': datetime.datetime.strftime(datetime.datetime.now(), '%d-%m-%Y %H:%M:%S')}])
                 print(f'{id['name']} b64 saved')
+                print(id['ref'])
             else:
                 print(f'{id['name']} pass')
                 pass
-    encoder()
-
-
-encoder()
