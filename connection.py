@@ -1,10 +1,12 @@
 import time
+import zmq
 import xmlrpc.client
 import base64
 from PIL import Image
 import numpy as np
 from dotenv import load_dotenv
 import datetime
+import requests
 import os
 import io
 import face_recognition
@@ -20,6 +22,8 @@ db = os.getenv("DB_ODOO")
 username = os.getenv("USER_ODOO")
 password = os.getenv("PASS_ODOO")
 
+
+
 # Autenticação
 common = xmlrpc.client.ServerProxy('{}/xmlrpc/2/common'.format(url_odoo))
 uid = common.authenticate(db, username, password, {})
@@ -34,6 +38,10 @@ def is_date(string):
         print(f'ERROR: {e}')
         return datetime.datetime.strftime(datetime.datetime(9999, 1, 1, 0, 0), '%d-%m-%Y %H:%M:%S')
 
+# Inicialização do ZeroMQ
+context = zmq.Context()
+socket = context.socket(zmq.REQ)
+socket.connect("tcp://localhost:5555")
 
 # Carrega vídeo
 cap = cv.VideoCapture(0)
@@ -71,7 +79,6 @@ while True:
                         compare = face_recognition.compare_faces(face_encod, encodeFace)  # Comparar com cada face detectada
                         # Usuario encontrado
 
-                        # @todo Arrumar o compare
                         if True in compare:
                             # if id['id'] not in start_time_detection:
                             #     start_time_detection[id['id']] = current_time
@@ -81,6 +88,10 @@ while True:
 
                             # elif current_time - start_time_detection[id['id']] >= datetime.timedelta(seconds=5):
                             if is_date(id['ref']) <= datetime.datetime.now():
+                                message = f"{id['id']},{id['name']}"
+                                socket.send_string(message)
+                                response = socket.recv_string()
+                                print(response)
                                 print(f'Usuario {id['name']} bateu? {compare}')
                                 models.execute_kw(db, uid, password, 'res.partner', 'write', [[id['id']], {'ref': datetime.datetime.strftime(datetime.datetime.now() + datetime.timedelta(minutes=5), '%d-%m-%Y %H:%M:%S')}, ])
                                 pass
@@ -101,6 +112,7 @@ while True:
 
             if not user_found:
                 # Funcionalidade de cadastro
+
                 print('Não bateu')
 
 
