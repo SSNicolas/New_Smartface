@@ -30,7 +30,7 @@ def cooldown_code(nmbr):
         datetime.datetime.strptime(nmbr, '%d-%m-%Y %H:%M:%S')
         # print(True)
         return True
-    except ValueError:
+    except BaseException:
         # print(False)
         return False
 
@@ -41,7 +41,7 @@ while True:
     for id in ids:
         if id['image_1920'] and id['id'] != 1:
 
-            if not cooldown_code(id['ref']):
+            if not cooldown_code(id['ref']) or not id['ref']:
                 # b64 para data
                 image_data = base64.b64decode(id['image_1920'])
                 # data para binario
@@ -58,7 +58,6 @@ while True:
                 # salva no dados para o Odoo
                 models.execute_kw(db, uid, password, 'res.partner', 'write', [[id['id']], {'comment': face_encod_base64, 'ref': datetime.datetime.strftime(datetime.datetime.now(), '%d-%m-%Y %H:%M:%S')}])
                 print(f'{id['name']} b64 saved')
-                print(id['ref'])
             else:
                 print(f'{id['name']} pass')
                 pass
