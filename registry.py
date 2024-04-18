@@ -44,7 +44,7 @@ while True:
     socket.send_string("Mensagem recebida com sucesso!")
     user_name, img_all, face_img, top, right, bottom, left = message.split(",")
     models.execute_kw(db, uid, password, 'res.partner', 'create', [{'name': user_name, 'image_1920': face_img, 'ref': 0}])
-    print('Cadastrado!')  # todo testar se ta funcionando normalmente
+    print('Cadastrado!')
 
     # encodeFaceloc = face_recognition.face_landmarks(user_face)
     # Aqui você pode adicionar a lógica para lidar com os dados recebidos
