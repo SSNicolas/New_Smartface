@@ -24,7 +24,6 @@ username = os.getenv("USER_ODOO")
 password = os.getenv("PASS_ODOO")
 
 
-
 # Autenticação
 common = xmlrpc.client.ServerProxy('{}/xmlrpc/2/common'.format(url_odoo))
 uid = common.authenticate(db, username, password, {})

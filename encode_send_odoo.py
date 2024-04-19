@@ -39,15 +39,17 @@ while True:
     ids = models.execute_kw(db, uid, password, 'res.partner', 'search_read', [[]], {'fields': ['name', 'image_1920', 'ref', 'category_id', 'id', 'comment']})
 
     for id in ids:
-        if id['image_1920'] and id['id'] != 1:
+        if id['image_1920'] and id['id'] != 1 and not id['ref'] == 'a':
 
             if not cooldown_code(id['ref']) or not id['ref']:
                 # b64 para data
                 image_data = base64.b64decode(id['image_1920'])
+
                 # data para binario
                 image = Image.open(io.BytesIO(image_data))
                 # binario para array np
                 known_array = np.array(image)
+                known_array = cv.cvtColor(known_array, cv.COLOR_BGR2RGB)
 
                 # comeca o encode
                 face_locat = face_recognition.face_locations(known_array)
