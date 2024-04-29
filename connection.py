@@ -1,3 +1,4 @@
+import signal
 import time
 import zmq
 import xmlrpc.client
@@ -14,6 +15,7 @@ import cv2 as cv
 import pickle
 import re
 from concurrent.futures import ThreadPoolExecutor
+# import signal
 
 load_dotenv()
 
@@ -29,6 +31,8 @@ common = xmlrpc.client.ServerProxy('{}/xmlrpc/2/common'.format(url_odoo))
 uid = common.authenticate(db, username, password, {})
 models = xmlrpc.client.ServerProxy('{}/xmlrpc/2/object'.format(url_odoo))
 
+# executor = ThreadPoolExecutor(max_workers=10)
+
 def is_date(string):
     # Validação se é datetime
     try:
@@ -39,12 +43,18 @@ def is_date(string):
         return datetime.datetime.strftime(datetime.datetime(9999, 1, 1, 0, 0), '%d-%m-%Y %H:%M:%S')
 
 
-# Funções para mensagens
+# Execucao de funcoes assincronas
 def send_message(func, *args, **kwargs):
     with ThreadPoolExecutor() as executor:
         future = executor.submit(func, *args, **kwargs)
         return future.result()
 
+# def close_executor(signal_received, frame):
+#     print('Received: ', signal_received, '. Closing executor...')
+#     executor.shutdown(wait=True)
+#     print('Executor shut down.')
+#
+# signal.signal(signal.SIGINT, close_executor)
 
 def create_attachment(base64_image):
     attachment_id = models.execute_kw(
@@ -108,54 +118,58 @@ socket = context.socket(zmq.REQ)
 socket.connect("tcp://localhost:5555")
 
 # Carrega vídeo
-cap = cv.VideoCapture(0)
+cap = cv.VideoCapture(os.getenv("URL_RTSP"), cv.CAP_FFMPEG)
 # cap.set(cv.CAP_PROP_FRAME_WIDTH, 1280)
 # cap.set(cv.CAP_PROP_FRAME_HEIGHT, 720)
-
 
 scale_factor = 1.9
 
 frame_count = 0
+# @ todo
+frame_skip = 30
 
 while True:
-
+    # try:
     # Frame Vídeo
     ret, img = cap.read()
     if not ret:
         print("Erro na captura do frame")
         break
 
-    ids = models.execute_kw(db, uid, password, 'res.partner', 'search_read', [[]], {'fields': ['name', 'image_1920', 'ref', 'category_id', 'id', 'comment']})
-    frame_count += 1
-    if frame_count % 2 == 0:  # Process for each 2 frames
+    ids = models.execute_kw(db, uid, password, 'res.partner', 'search_read', [[]], {'fields': ['name', 'image_1920', 'ref', 'category_id', 'id', 'comment']}) #todo
+
+    if frame_count % frame_skip == 0:
         try:
             imgS = cv.cvtColor(img, cv.COLOR_BGR2RGB)
-
         except cv.error as e:
             print(f"Erro ao converter cor do frame: {e}")
-
-        faceCurFrame = face_recognition.face_locations(imgS)
+        # todo
+        # face location
+        faceCurFrame = face_recognition.face_locations(imgS, model="hog")
+        # face encoding
         encodeCurFrame = face_recognition.face_encodings(imgS, faceCurFrame)
 
 
+        # verificação de frame atual
         if faceCurFrame:
             for index_lista, encodeFace in enumerate(encodeCurFrame):
+                # posicoes da face na imagem original
                 top, right, bottom, left = faceCurFrame[index_lista]
+                # configuracao pra diminuir a imagem dentro da parada
                 face_width = right - left
                 face_height = bottom - top
                 left = max(int(left - face_width * ((scale_factor - 1) / 2)), 0)
                 top = max(int(top - face_height * ((scale_factor - 1) / 2)), 0)
                 right = min(int(right + face_width * ((scale_factor - 1) / 2)), img.shape[1])
                 bottom = min(int(bottom + face_height * ((scale_factor - 1) / 2)), img.shape[0])
-                face_image = img[top:bottom, left:right]
+                face_image = img[top:bottom, left:right] # todo trocar o img por imgS e Testes
                 _, encoded_face = cv.imencode('.jpg', face_image)
                 encoded_face_str = base64.b64encode(encoded_face).decode('utf-8')
 
                 bot_id = 1
                 channel_id = models.execute_kw(db, uid, password, 'discuss.channel', 'search', [[['name', '=', 'Administrator']]])
-
+                user_found = False
                 for index, id in enumerate(ids):
-                    user_found = False
                     if id['image_1920'] and id['id'] != 1:
                         try:
                             clean_decode = base64.b64decode(re.sub(r'<p>|</p>', '', id['comment']))
@@ -176,9 +190,8 @@ while True:
                                     # VIP User
                                     if id['category_id'] == [1]:
                                         send_message(create_vip_message, create_attachment(encoded_face_str), bot_id=bot_id, nome_membro=id['name'], channel_id=channel_id) # VIP Message
-
                                     # Normal User
-                                    elif not id['category_id']:
+                                    elif not id['category_id']: # todo
                                         send_message(create_user_message, user_name=id['name'], bot_id=bot_id, channel_id=channel_id) # user message
 
                                     # Log creation of each user
@@ -212,8 +225,12 @@ while True:
             print('Nenhum rosto identificado')
             if cv.waitKey(1) & 0xFF == ord('q'):
                 break
+
+        frame_count += 1
             # if id['id'] in start_time_detection or is_date(id['ref']) > datetime.datetime.now():
             #     print(f'Cooldown {id['ref']}')
+    # finally:
+    #     executor.shutdown(wait=True)
 
 
 
