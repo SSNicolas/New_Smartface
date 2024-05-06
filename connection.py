@@ -108,6 +108,7 @@ socket = context.socket(zmq.REQ)
 socket.connect("tcp://localhost:5555")
 
 # Carrega vídeo
+# cap = cv.VideoCapture(os.getenv("URL_RTSP"), cv.CAP_FFMPEG)
 cap = cv.VideoCapture(0)
 # cap.set(cv.CAP_PROP_FRAME_WIDTH, 1280)
 # cap.set(cv.CAP_PROP_FRAME_HEIGHT, 720)
@@ -124,7 +125,6 @@ while True:
     if not ret:
         print("Erro na captura do frame")
         break
-
     ids = models.execute_kw(db, uid, password, 'res.partner', 'search_read', [[]], {'fields': ['name', 'image_1920', 'ref', 'category_id', 'id', 'comment']})
     frame_count += 1
     if frame_count % 2 == 0:  # Process for each 2 frames

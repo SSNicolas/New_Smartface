@@ -46,6 +46,7 @@ while True:
     models.execute_kw(db, uid, password, 'res.partner', 'create', [{'name': user_name, 'image_1920': face_img, 'ref': 0}])
     print('Cadastrado!')
 
+
     # encodeFaceloc = face_recognition.face_landmarks(user_face)
     # Aqui você pode adicionar a lógica para lidar com os dados recebidos
     # face_location = user_face

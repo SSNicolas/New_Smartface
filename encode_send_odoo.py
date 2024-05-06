@@ -42,7 +42,7 @@ while True:
         if id['image_1920'] and id['id'] != 1 and not id['ref'] == 'a':
 
             if not cooldown_code(id['ref']) or not id['ref']:
-                # b64 para data
+                # b64 para data,
                 image_data = base64.b64decode(id['image_1920'])
 
                 # data para binario
